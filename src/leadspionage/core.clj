@@ -24,23 +24,6 @@
 ;; Read the source file in Hubspot
 
 (defn rhf [] (read-hubspot-file latestsource))
-;;(def users (vec (rhf)))
-
-(defn read-hubspot-source [source typeofsource]
-  (if (= typeofsource "f")
-    (do(
-        (read-hubspot-file source)
-         )
-        ) ;; header added
-    (do(
-         "directory"
-         ;;(println "Determining suitable fils for " inputdirectory )
-         (def directory (clojure.java.io/file source))
-         (def files (file-seq directory))
-         (doseq [filu files] (
-                              (println filu)
-                              ))))))
-
 
 (defn simplifydate [complexdate]
   (str/split (.format (java.text.SimpleDateFormat. "yyyy-MM-dd")
@@ -66,48 +49,21 @@
     )
   )
 
-
-(defn cohorts [date_today leads]
-  ;; this should be a loop through every line where the date difference between
-  ;; the last activity date and the time of processing the file is calculated and
-  ;; added to the map
-  ;; Then, each user should be assigned to a cohort based on that date difference.
-  (println "He be the cohorting of the data")
+(defn cohorts [timesince]
+  ;; Assigned to a cohort based on how long it's been since the last activity
   ;; Each cohort is an upper bound of how many days is it between today and the last activity date
   (def leadcohorts [7 14 28 60 90 120 180])
-  (doseq [[userindex user] (map-indexed vector leads)]
-    ;;(println (get user :Email))
-    (def lastactivitydate (get user :LastActivityDate))
-    ;;(print lastactivitydate)
-    (comment "(def lad_as_date
-      (local-date
-        (parse-int (pick-year (simplifydate lastactivitydate)))
-        (parse-int (pick-month (simplifydate lastactivitydate)))
-        (parse-int (pick-day (simplifydate lastactivitydate)))
-        )
-      )
-      ")
-    ;;(println (class lad_as_date))
-    ;;(def timesince (java-time/time-between lad_as_date (local-date) :days))
-    ;;(def timesince (java-time/time-between (hubspotdate2javadate lastactivitydate) (local-date) :days))
-    (def timesince (java-time/time-between (hubspotdate2javadate lastactivitydate) date_today :days))
-    ;;(def thisuser {:ActiveDaysAgo timesince})
-    (assoc-in user [userindex :ActiveDaysAgo] timesince) ;; this works
-    ;;(assoc-in user [userindex :ActiveDaysAgo] timesince)
-    (if (= 0 (mod userindex 500)) (
-                                    do(
-                                      println "Time since: " timesince)
-                                      (println (keys user) ;; well, it's immutable, remember
-                                                )))
-    ;; (println userindex " AND " timesince)
-    ;;(println (str/split email #"@"))
-    ;;(if (not-empty (nth (str/split email #"@") 1))
-    ;;(println (nth str/split email #"@") 1))
-    ;;  (println (not-empty? nth (str/split email #"@") 1))
-    ;;(take-nth 0)
-    ))
+  ;; here be a switch-case for each cohort.
+  )
 
-(cohorts (local-date) (vec (rhf)))
+
+(defn calclad [date_today user]
+  ;; calculate the time since the last activity date for one user
+    (def lastactivitydate (get user :LastActivityDate))
+    (def timesince (java-time/time-between (hubspotdate2javadate lastactivitydate) date_today :days))
+    ;; Here be a function that returns a cohort based on the timesince
+    (assoc user :ActiveDaysAgo timesince) ;; this works
+  )
 
 ;; The only thing remaining is to summarize the results.
 ;; In: map with [{:cohort}{:numberofusers}]
@@ -116,36 +72,13 @@
 
 (summarize_cohorts '(1 2 3 4) '(1 2 3 4))
 
+;; If I am given one map, I want the same map back
+(defn returnsamemap [maptomodify] (maptomodify))
+;; Then, I want the same map with new information
+(defn addnewkey [todayis maptomodify] (assoc maptomodify :ActiveDaysAgo "1"))
 
-
-;;(def complexdate (get-in (nth users 1000) [:LastActivityDate]))
-;; (def df (java.text.SimpleDateFormat. "yyyy-mm-dd HH:mm"))
-;;(.format (java.text.SimpleDateFormat. "yyyy-MM-dd") (.parse df complexdate))
-;; (get-in (nth users 1000) [:LastActivityDate])
-
-(comment"
-(defn simplifydate [complexdate]
-  (str/replace (.format (java.text.SimpleDateFormat. "yyyy-MM-dd")
-           (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm") complexdate))
-  "-" " ")
-  )
-  ")
-
-
-;;(simplifydate (get-in (nth (rhf) 1000) [:LastActivityDate]))
-;;(simplifydate complexdate)
-
-;; (local-date (parse-int "2020") (parse-int "03") (parse-int "24"))
-(comment "
-(def wasactive
-  (local-date
-    (parse-int (pick-year (simplifydate complexdate)))
-    (parse-int (pick-month (simplifydate complexdate)))
-    (parse-int (pick-day (simplifydate complexdate)))
-                           )
-  )
-  ")
-
-;;(println wasactive todayis2)
-;;(java-time/time-between wasactive todayis2 :days)
-;;(java-time/time-between (todayis) (simplifydate complexdate) :days)
+;; Then, I want the vector with multiple maps
+(def userswithactivedaysago (map #(calclad todayis %) (rhf)))
+;; You have to think inside out, not outside in
+;; What is the smallest computation I can do
+(nth userswithactivedaysago 10)
