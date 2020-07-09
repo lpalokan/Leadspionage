@@ -34,12 +34,15 @@
 (defn parse-int [s]
   (Integer. (re-find  #"\d+" s )))
 
+(defn parse-long [s]
+  (Long. (re-find  #"\d+" s )))
+
+
+
 (defn pick-year [complexdate] (nth complexdate 0))
 (defn pick-month [complexdate] (nth complexdate 1))
 (defn pick-day [complexdate] (nth complexdate 2))
 
-(defn todayis [] (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") (new java.util.Date)))
-(def todayis (local-date))
 (defn hubspotdate2javadate [lastactivitydate]
   ;;(println "Date to be parsed is " lastactivitydate)
   (local-date
@@ -49,28 +52,40 @@
     )
   )
 
+(def todayis (local-date))
+
 (defn cohorts [timesince]
   ;; Assigned to a cohort based on how long it's been since the last activity
   ;; Each cohort is an upper bound of how many days is it between today and the last activity date
-  (def leadcohorts [7 14 28 60 90 120 180])
+  (let [howlong timesince]
+    (cond
+      (<= howlong 7) 7
+      (<= howlong 14) 14
+      (<= howlong 28) 28
+      (<= howlong 60) 60
+      (<= howlong 120) 120
+      (<= howlong 180) 180
+      :else "360"
+      )
+    )
   ;; here be a switch-case for each cohort.
   )
 
-
 (defn calclad [date_today user]
   ;; calculate the time since the last activity date for one user
-    (def lastactivitydate (get user :LastActivityDate))
-    (def timesince (java-time/time-between (hubspotdate2javadate lastactivitydate) date_today :days))
-    ;; Here be a function that returns a cohort based on the timesince
-    (assoc user :ActiveDaysAgo timesince) ;; this works
+  (def lastactivitydate (get user :LastActivityDate))
+  (def timesince (java-time/time-between (hubspotdate2javadate lastactivitydate) date_today :days))
+  (assoc user :ActiveDaysAgo timesince :ActivityCohort (cohorts timesince))
+  ;; Next, figure out the cohort based on the timesince
+  ;;(assoc user :ActivityCohort (cohorts timesince))
   )
+
+(def userswithactivedaysago (map #(calclad todayis %) (rhf)))
 
 ;; The only thing remaining is to summarize the results.
 ;; In: map with [{:cohort}{:numberofusers}]
 ;; The details of each Lead can be then found in [users]
 (defn summarize_cohorts [leadcohorts leads] (println "Here be a summary"))
-
-(summarize_cohorts '(1 2 3 4) '(1 2 3 4))
 
 ;; If I am given one map, I want the same map back
 (defn returnsamemap [maptomodify] (maptomodify))
@@ -78,7 +93,8 @@
 (defn addnewkey [todayis maptomodify] (assoc maptomodify :ActiveDaysAgo "1"))
 
 ;; Then, I want the vector with multiple maps
-(def userswithactivedaysago (map #(calclad todayis %) (rhf)))
 ;; You have to think inside out, not outside in
 ;; What is the smallest computation I can do
-(nth userswithactivedaysago 10)
+(first userswithactivedaysago)
+
+(summarize_cohorts '(1 2 3 4) '(1 2 3 4))
