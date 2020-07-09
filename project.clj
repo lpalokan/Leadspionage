@@ -8,5 +8,6 @@
                  [semantic-csv "0.2.1-alpha1"]
                  [clj-time "0.15.2"]
                  [clojure.java-time "0.3.2"]
+                 [com.hypirion/clj-xchart "0.2.0"]
                  ]
   :repl-options {:init-ns leadspionage.core})

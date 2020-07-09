@@ -5,11 +5,12 @@
     [clojure.data.csv :as csv]
     [clojure.walk :as walk]
     [semantic-csv.core :as sc]
+    [com.hypirion.clj-xchart :as cl]
     )
   )
 
-(refer-clojure :exclude [contains? iterate range min format zero? max])
 (use 'java-time)
+(refer-clojure :exclude [contains? iterate range min format zero? max])
 
 ;; The basic logic of the app is as follows
 (def latestsource "/Users/lpalokangas/Downloads/hubspot3.csv")
@@ -33,11 +34,6 @@
 
 (defn parse-int [s]
   (Integer. (re-find  #"\d+" s )))
-
-(defn parse-long [s]
-  (Long. (re-find  #"\d+" s )))
-
-
 
 (defn pick-year [complexdate] (nth complexdate 0))
 (defn pick-month [complexdate] (nth complexdate 1))
@@ -65,7 +61,7 @@
       (<= howlong 60) 60
       (<= howlong 120) 120
       (<= howlong 180) 180
-      :else "360"
+      :else 360
       )
     )
   ;; here be a switch-case for each cohort.
@@ -85,16 +81,38 @@
 ;; The only thing remaining is to summarize the results.
 ;; In: map with [{:cohort}{:numberofusers}]
 ;; The details of each Lead can be then found in [users]
-(defn summarize_cohorts [leadcohorts leads] (println "Here be a summary"))
+(defn summarize_cohorts [leads] (
+               ;;frequencies (map #(get % :ActivityCohort) leads))
+               ;;reverse (sort (frequencies (map #(get % :ActivityCohort) leads))))
+                sort (frequencies (map #(get % :ActivityCohort) leads)))
+               )
 
-;; If I am given one map, I want the same map back
-(defn returnsamemap [maptomodify] (maptomodify))
-;; Then, I want the same map with new information
-(defn addnewkey [todayis maptomodify] (assoc maptomodify :ActiveDaysAgo "1"))
+(summarize_cohorts userswithactivedaysago)
+;; Here be keys to the chart
+(def xvalues (vec (keys (summarize_cohorts userswithactivedaysago))))
+;; Here be values
+(def yvalues (vec (vals (summarize_cohorts userswithactivedaysago))))
 
-;; Then, I want the vector with multiple maps
-;; You have to think inside out, not outside in
-;; What is the smallest computation I can do
-(first userswithactivedaysago)
+(defn freq-chart [xvalues yvalues]
+  ;; (def chart
+  ;;  (cl/xy-chart {"Leads drop off the wagon" xvalues yvalues]}))
+  (def chart
+    (cl/category-chart {"Leads drop off the wagon" {
+                                              :x xvalues
+                                              :y yvalues}}
+                 {
+                  :annotations? true
+                  :title "Drop-off rate of leads"
+                  :legend {:visible? true :position :inside-ne}
+                  :x-axis {:order (reverse xvalues)}}))
+  (cl/view chart)
+      )
 
-(summarize_cohorts '(1 2 3 4) '(1 2 3 4))
+(freq-chart xvalues yvalues)
+
+;; Here create a data structure where ledas are grouped by their ActivityCohort
+;;(map #(get % :ActivityCohort) userswithactivedaysago)
+;;(frequencies (map #(get % :ActivityCohort) userswithactivedaysago))
+;;(def groupleadsbyactivedays (group-by #(get % :ActivityCohort) userswithactivedaysago))
+;;(frequencies groupleadsbyactivedays)
+;; (summarize_cohorts '(1 2 3 4))
