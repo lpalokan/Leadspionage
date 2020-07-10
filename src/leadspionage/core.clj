@@ -21,32 +21,7 @@
                             csv/read-csv)]
     (map #(-> (zipmap header %) (walk/keywordize-keys)) rows )))
 
-(defn latestfile [])
-;; Read the source file in Hubspot
-
 (defn rhf [] (read-hubspot-file latestsource))
-
-(defn simplifydate [complexdate]
-  (str/split (.format (java.text.SimpleDateFormat. "yyyy-MM-dd")
-                      (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd HH:mm") complexdate))
-             #"-")
-  )
-
-(defn parse-int [s]
-  (Integer. (re-find  #"\d+" s )))
-
-(defn pick-year [complexdate] (nth complexdate 0))
-(defn pick-month [complexdate] (nth complexdate 1))
-(defn pick-day [complexdate] (nth complexdate 2))
-
-(defn hubspotdate2javadate [lastactivitydate]
-  ;;(println "Date to be parsed is " lastactivitydate))
-  (local-date
-    (parse-int (pick-year (simplifydate lastactivitydate)))
-    (parse-int (pick-month (simplifydate lastactivitydate)))
-    (parse-int (pick-day (simplifydate lastactivitydate)))
-    )
-  )
 
 (defn hsdate->javadate [lastactivitydate]
   ;;(println "Working on: " lastactivitydate)
@@ -54,9 +29,6 @@
   (def datearray (str/split shortdate #" "))
   (apply local-date (map #(Integer/parseInt %) datearray))
   )
-
-(hsdate->javadate "2020-01-02 11:11")
-
 
 (def todayis (local-date))
 
