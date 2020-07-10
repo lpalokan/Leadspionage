@@ -40,13 +40,23 @@
 (defn pick-day [complexdate] (nth complexdate 2))
 
 (defn hubspotdate2javadate [lastactivitydate]
-  ;;(println "Date to be parsed is " lastactivitydate)
+  ;;(println "Date to be parsed is " lastactivitydate))
   (local-date
     (parse-int (pick-year (simplifydate lastactivitydate)))
     (parse-int (pick-month (simplifydate lastactivitydate)))
     (parse-int (pick-day (simplifydate lastactivitydate)))
     )
   )
+
+(defn hsdate->javadate [lastactivitydate]
+  ;;(println "Working on: " lastactivitydate)
+  (def shortdate (str/replace lastactivitydate #"(\d{4})-(\d{2})-(\d{2}).+" "$1 $2 $3"))
+  (def datearray (str/split shortdate #" "))
+  (apply local-date (map #(Integer/parseInt %) datearray))
+  )
+
+(hsdate->javadate "2020-01-02 11:11")
+
 
 (def todayis (local-date))
 
@@ -70,7 +80,7 @@
 (defn calclad [date_today user]
   ;; calculate the time since the last activity date for one user
   (def lastactivitydate (get user :LastActivityDate))
-  (def timesince (java-time/time-between (hubspotdate2javadate lastactivitydate) date_today :days))
+  (def timesince (java-time/time-between (hsdate->javadate lastactivitydate) date_today :days))
   (assoc user :ActiveDaysAgo timesince :ActivityCohort (cohorts timesince))
   ;; Next, figure out the cohort based on the timesince
   ;;(assoc user :ActivityCohort (cohorts timesince))
