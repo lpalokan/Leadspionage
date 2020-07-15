@@ -13,16 +13,17 @@
 (refer-clojure :exclude [contains? iterate range min format zero? max])
 
 ;; The basic logic of the app is as follows
-;; Define source file from Hubspot
-(def latest-source "/Users/lpalokangas/Downloads/hubspot3.csv")
-(defn read-hubspot-file "Turn that source file into a map data structure" [source]
+(defn read-hubspot-file
+  "Turn that source file into a map data structure"
   ;; First, read a CSV file in from Hubspot.
-  (let [[header & rows]
-        (-> source
-                            io/file
-                            io/reader
-                            csv/read-csv)]
-    (map #(-> (zipmap header %) (walk/keywordize-keys)) rows )))
+  ;; If there is no source file defined, use the default one
+  ([] (read-hubspot-file "/Users/lpalokangas/Downloads/hubspot3.csv"))
+  ([source] (let [[header & rows]
+                  (-> source
+                      io/file
+                      io/reader
+                      csv/read-csv)]
+              (map #(-> (zipmap header %) (walk/keywordize-keys)) rows))))
 
 (defn hsdate->javadate [last-activity-date]
   ;; Convert date format from Hubspot's string to Java date
@@ -52,7 +53,7 @@
   (assoc user :ActiveDaysAgo time-since :ActivityCohort (cohort-from-days-since-active time-since))
   )
 
-(def users-with-active-days-ago (map #(calculate-last-activity-date (local-date) %) (read-hubspot-file latest-source)))
+(def users-with-active-days-ago (map #(calculate-last-activity-date (local-date) %) (read-hubspot-file)))
 
 ;; Summarize the results.
 (defn summarize-cohorts [leads] (
