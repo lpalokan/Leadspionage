@@ -42,23 +42,19 @@
     (<= how-long 60) 60
     (<= how-long 120) 120
     (<= how-long 180) 180
-    :else 360
-    )
-  )
+    :else 360))
 
 (defn calculate-last-activity-date [date_today user]
   ;; calculate the time since the last activity date for one user
   (def last-activity-date (get user :LastActivityDate))
   (def time-since (java-time/time-between (hsdate->javadate last-activity-date) date_today :days))
-  (assoc user :ActiveDaysAgo time-since :ActivityCohort (cohort-from-days-since-active time-since))
-  )
+  (assoc user :ActiveDaysAgo time-since :ActivityCohort (cohort-from-days-since-active time-since)))
 
 (def users-with-active-days-ago (map #(calculate-last-activity-date (local-date) %) (read-hubspot-file)))
 
 ;; Summarize the results.
 (defn summarize-cohorts [leads] (
-                sort (frequencies (map #(get % :ActivityCohort) leads)))
-               )
+                sort (frequencies (map #(get % :ActivityCohort) leads))))
 
 (summarize-cohorts users-with-active-days-ago)
 
@@ -78,7 +74,6 @@
                   :title "Drop-off rate of leads"
                   :legend {:visible? true :position :inside-ne}
                   :x-axis {:order (reverse x-values)}}))
-  (cl/view chart)
-      )
+  (cl/view chart))
 
 (freq-chart x-values y-values)
