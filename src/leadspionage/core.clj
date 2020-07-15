@@ -47,14 +47,14 @@
     )
   )
 
-(defn calclad [date_today user]
+(defn calculate-last-activity-date [date_today user]
   ;; calculate the time since the last activity date for one user
   (def last-activity-date (get user :LastActivityDate))
   (def time-since (java-time/time-between (hsdate->javadate last-activity-date) date_today :days))
   (assoc user :ActiveDaysAgo time-since :ActivityCohort (cohort-from-days-since-active time-since))
   )
 
-(def users-with-active-days-ago (map #(calclad (local-date) %) (read-hubspot-file latest-source)))
+(def users-with-active-days-ago (map #(calculate-last-activity-date (local-date) %) (read-hubspot-file latest-source)))
 
 ;; Summarize the results.
 (defn summarize-cohorts [leads] (
