@@ -31,19 +31,17 @@
   (apply local-date (map #(Integer/parseInt %) date-as-array))
   )
 
-(defn cohort-from-days-since-active [time-since]
+(defn cohort-from-days-since-active [how-long]
   ;; Assign each lead to a cohort based on how long it's been since the last activity
   ;; Each cohort is an upper bound of how many days is it between today and the last activity date
-  (let [how-long time-since]
-    (cond
-      (<= how-long 7) 7
-      (<= how-long 14) 14
-      (<= how-long 28) 28
-      (<= how-long 60) 60
-      (<= how-long 120) 120
-      (<= how-long 180) 180
-      :else 360
-      )
+  (cond
+    (<= how-long 7) 7
+    (<= how-long 14) 14
+    (<= how-long 28) 28
+    (<= how-long 60) 60
+    (<= how-long 120) 120
+    (<= how-long 180) 180
+    :else 360
     )
   )
 
