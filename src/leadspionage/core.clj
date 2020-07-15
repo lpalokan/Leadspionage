@@ -14,7 +14,7 @@
 
 ;; The basic logic of the app is as follows
 ;; Define source file from Hubspot
-(def latestsource "/Users/lpalokangas/Downloads/hubspot3.csv")
+(def latest-source "/Users/lpalokangas/Downloads/hubspot3.csv")
 (defn read-hubspot-file "Turn that source file into a map data structure" [source]
   ;; First, read a CSV file in from Hubspot.
   (let [[header & rows]
@@ -24,32 +24,24 @@
                             csv/read-csv)]
     (map #(-> (zipmap header %) (walk/keywordize-keys)) rows )))
 
-(defn rhf [] (read-hubspot-file latestsource))
-
-(defn hsdate->javadate [lastactivitydate]
+(defn hsdate->javadate [last-activity-date]
   ;; Convert date format from Hubspot's string to Java date
-  (def shortdate (str/replace lastactivitydate #"(\d{4})-(\d{2})-(\d{2}).+" "$1 $2 $3"))
-  (def datearray (str/split shortdate #" "))
-  (apply local-date (map #(Integer/parseInt %) datearray))
+  (def short-date (str/replace last-activity-date #"(\d{4})-(\d{2})-(\d{2}).+" "$1 $2 $3"))
+  (def date-as-array (str/split short-date #" "))
+  (apply local-date (map #(Integer/parseInt %) date-as-array))
   )
 
-
-(def todayis
-  ;; Specify what day is it today.
-  (local-date)
-  )
-
-(defn cohorts [timesince]
+(defn cohort-from-days-since-active [time-since]
   ;; Assign each lead to a cohort based on how long it's been since the last activity
   ;; Each cohort is an upper bound of how many days is it between today and the last activity date
-  (let [howlong timesince]
+  (let [how-long time-since]
     (cond
-      (<= howlong 7) 7
-      (<= howlong 14) 14
-      (<= howlong 28) 28
-      (<= howlong 60) 60
-      (<= howlong 120) 120
-      (<= howlong 180) 180
+      (<= how-long 7) 7
+      (<= how-long 14) 14
+      (<= how-long 28) 28
+      (<= how-long 60) 60
+      (<= how-long 120) 120
+      (<= how-long 180) 180
       :else 360
       )
     )
@@ -57,37 +49,37 @@
 
 (defn calclad [date_today user]
   ;; calculate the time since the last activity date for one user
-  (def lastactivitydate (get user :LastActivityDate))
-  (def timesince (java-time/time-between (hsdate->javadate lastactivitydate) date_today :days))
-  (assoc user :ActiveDaysAgo timesince :ActivityCohort (cohorts timesince))
+  (def last-activity-date (get user :LastActivityDate))
+  (def time-since (java-time/time-between (hsdate->javadate last-activity-date) date_today :days))
+  (assoc user :ActiveDaysAgo time-since :ActivityCohort (cohort-from-days-since-active time-since))
   )
 
-(def userswithactivedaysago (map #(calclad todayis %) (rhf)))
+(def users-with-active-days-ago (map #(calclad (local-date) %) (read-hubspot-file latest-source)))
 
 ;; Summarize the results.
-(defn summarize_cohorts [leads] (
+(defn summarize-cohorts [leads] (
                 sort (frequencies (map #(get % :ActivityCohort) leads)))
                )
 
-(summarize_cohorts userswithactivedaysago)
+(summarize-cohorts users-with-active-days-ago)
 
 ;; Build a chart out of it
 ;; Here be keys to the chart
-(def xvalues (vec (keys (summarize_cohorts userswithactivedaysago))))
+(def x-values (vec (keys (summarize-cohorts users-with-active-days-ago))))
 ;; Here be values
-(def yvalues (vec (vals (summarize_cohorts userswithactivedaysago))))
+(def y-values (vec (vals (summarize-cohorts users-with-active-days-ago))))
 
-(defn freq-chart [xvalues yvalues]
+(defn freq-chart [x-values y-values]
   (def chart
     (cl/category-chart {"Time since last activity" {
-                                              :x xvalues
-                                              :y yvalues}}
+                                              :x x-values
+                                              :y y-values}}
                  {
                   :annotations? true
                   :title "Drop-off rate of leads"
                   :legend {:visible? true :position :inside-ne}
-                  :x-axis {:order (reverse xvalues)}}))
+                  :x-axis {:order (reverse x-values)}}))
   (cl/view chart)
       )
 
-(freq-chart xvalues yvalues)
+(freq-chart x-values y-values)
